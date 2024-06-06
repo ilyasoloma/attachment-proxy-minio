@@ -4,7 +4,7 @@
 module.exports = {
 	logLevel: 'none',
 	logFile: '',
-	port: 3000,
+	port: 8084,
 	s3:  {
 		params: {
 			Bucket: 'test'

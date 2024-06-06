@@ -11,12 +11,13 @@
   "license": "AGPL-3.0",
   "dependencies": {
     "@koa/cors": "^3.3.0",
-    "aws-sdk": "^2.955.0",
     "config": "^3.3.6",
+    "debug": "^4.3.5",
     "koa": "^2.13.4",
     "koa-compress": "^5.1.0",
     "koa-router": "^11.0.1",
     "mime": "^2.5.2",
+    "minio": "^8.0.0",
     "through2": "^3.0.2",
     "winston": "^2.4.5",
     "yauzl": "^2.10.0"

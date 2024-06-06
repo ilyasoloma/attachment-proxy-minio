@@ -36,12 +36,16 @@ const Zip = require('./zip');
 const Storage = require('./storage');
 const utils = require('./utils');
 
+
+
 const app = new Koa();
 const router = new Router();
 const storage = new Storage({
 	tmpDir: config.get('tmpDir'),
 	config: config.get('s3')
 });
+
+
 // Configure CORS for the web library PDF reader
 app.use(cors({
 	origin: (ctx) => {
@@ -118,7 +122,6 @@ router.get('/:payload/:signature/:filename', async function (ctx) {
 		// This can happen only if dataserver generated incorrect url
 		ctx.throw(500);
 	}
-	
 	// Validate url expiration
 	let t = Math.floor(Date.now() / 1000);
 	if (payload.expires <= t) {
@@ -129,11 +132,13 @@ router.get('/:payload/:signature/:filename', async function (ctx) {
 	}
 	
 	// If it's a zip, download and mount it
+	
 	if (payload.zip) {
 		let zip = await getZip(payload.hash);
+		
 		let stream = null;
 		try {
-			stream = await zip.getStream(filename);
+			stream = await zip.getStream(filename, config.s3.params.Bucket);
 		} catch (err) {
 			// To keep all http response code logic in server.js
 			if (err.code === 'EntryNotFound') {
@@ -147,12 +152,15 @@ router.get('/:payload/:signature/:filename', async function (ctx) {
 	}
 	// If it's a regular file just pass-through the stream
 	else {
+		
 		if (payload.filename !== filename) {
 			ctx.throw(404);
 		}
 		
 		// Todo: Guess mime type if it's not set in payload?
-		let stream = await storage.getStream(payload.hash);
+		//ZDES PROBLEMA
+		let stream = await storage.getStream(payload.hash, config.s3.params.Bucket);
+		
 		if (payload.contentType) {
 			let type = payload.contentType;
 			if (payload.charset) {
@@ -180,7 +188,7 @@ async function getZip(hash) {
 		return zip;
 	}
 	
-	let tmpPath = await storage.downloadTmp(hash);
+	let tmpPath = await storage.downloadTmp(hash, config.s3.params.Bucket);
 	zip = new Zip();
 	await zip.load({
 		maxFiles: config.get('zipMaxFiles'),

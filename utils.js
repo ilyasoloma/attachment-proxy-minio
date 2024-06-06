@@ -34,6 +34,7 @@ exports.promisify = function(fn, callback) {
 	if (callback) {
 		fn(callback)
 	} else {
+	
 		return new Promise(function (resolve, reject) {
 			fn(function (err, res) {
 				if (err) {

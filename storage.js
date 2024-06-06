@@ -22,19 +22,25 @@
  
  ***** END LICENSE BLOCK *****
  */
-
+ 
+/********************************/
 const fs = require('fs');
 const crypto = require('crypto');
-const AWS = require('aws-sdk');
 const through2 = require('through2');
 const log = require('./log');
 const utils = require('./utils');
+const Minio = require('minio')
+/********************************/
+
+
+
 
 const Storage = function (options) {
 	this.tmpDir = options.tmpDir;
 	if (this.tmpDir.slice(-1) !== '/') this.tmpDir += '/';
-	
-	this.s3Client = new AWS.S3(options.config);
+	this.s3Client = new Minio.Client(options.config)
+	const bucket = options.config.params.Bucket;
+
 };
 
 module.exports = Storage;
@@ -45,15 +51,15 @@ module.exports = Storage;
  * @param callback
  * @returns stream
  */
-Storage.prototype.getStream = function (hash, callback) {
+Storage.prototype.getStream = function (hash, bucket, callback) {
 	const storage = this;
 	return utils.promisify(function (callback) {
-		storage.getStreamByKey(hash, function (err, stream) {
+		storage.getStreamByKey(hash, bucket, function (err, stream) {
 			if (err) {
 				if (err.code === 'NoSuchKey') {
 					storage.getLegacyKey(hash, function (err, key) {
 						if (err) return callback(err);
-						storage.getStreamByKey(key, function (err, stream) {
+						storage.getStreamByKey(key, bucket, function (err, stream) {
 							if (err) return callback(err);
 							callback(null, stream);
 						});
@@ -80,7 +86,7 @@ Storage.prototype.getStream = function (hash, callback) {
  * @param key
  * @param callback
  */
-Storage.prototype.getStreamByKey = function(key, callback) {
+Storage.prototype.getStreamByKey = function(key, bucket, callback) {
 	const storage = this;
 	let streaming = false;
 	let n =0;
@@ -88,26 +94,32 @@ Storage.prototype.getStreamByKey = function(key, callback) {
 		function (chunk, enc, next) {
 			if(!streaming) {
 				streaming = true;
+				
 				callback(null, stream2);
 			}
 			this.push(chunk);
 			next();
+			
 		});
+	let size = 0;
+	storage.s3Client.getObject(bucket, key, function(err, stream) {
+		 if (err) {
+		 	return callback(err);
+        	}
 
-	let stream = storage.s3Client.getObject({Key: key}).createReadStream();
-	
-	// There are errors that can happen before data started streaming
-	// e.g. NoItemFound, connection time out, etc.
-	// and there are errors that can happen when streaming is already started
-	// e.g. connection reset, data timeout, etc.
-	stream.on('error', function(err) {
-		if (streaming) {
-			stream2.emit('error', err);
-		} else {
-			callback(err);
-		}
-	});
-	stream.pipe(stream2);
+        	stream.on('error', function(err) {
+			if (streaming) {
+				stream2.emit('error', err);
+		    	} else {
+		        	callback(err);
+		    	}
+		});
+		
+		 stream.on('end', function() {
+            		stream2.end();
+        	});
+		stream.pipe(stream2);
+    });
 };
 
 /**
@@ -139,12 +151,13 @@ Storage.prototype.getTmpPath = function () {
 	}
 };
 
-Storage.prototype.downloadTmp = function (hash, callback) {
+Storage.prototype.downloadTmp = function (hash, bucket, callback) {
 	const storage = this;
 	return utils.promisify(function (callback) {
-		storage.getStream(hash, function (err, s3Stream) {
+		storage.getStream(hash, bucket, function (err, s3Stream) {
 			if (err) return callback(err);
 			let tmpPath = storage.getTmpPath();
+			
 			if (!tmpPath) return callback(new Error('Error generating a tmp file path'));
 			
 			let tmpStream = fs.createWriteStream(tmpPath);
@@ -171,7 +184,6 @@ Storage.prototype.downloadTmp = function (hash, callback) {
 			tmpStream.on('finish', function () {
 				callback(null, tmpPath);
 			});
-			
 			s3Stream.pipe(tmpStream);
 		});
 	}, callback);
