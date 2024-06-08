@@ -3,4 +3,6 @@ config/default.js
 config/stress.js
 config/*.json
 node_modules
+logs/*
+test/
 !.gitignore
