@@ -86,39 +86,43 @@ Storage.prototype.getStream = function (hash, bucket, callback) {
  * @param key
  * @param callback
  */
-Storage.prototype.getStreamByKey = function(key, bucket, callback) {
-	const storage = this;
-	let streaming = false;
-	let n =0;
-	let stream2 = through2({highWaterMark: 1 * 1024 * 1024},
-		function (chunk, enc, next) {
-			if(!streaming) {
-				streaming = true;
-				
-				callback(null, stream2);
-			}
-			this.push(chunk);
-			next();
-			
-		});
-	let size = 0;
-	storage.s3Client.getObject(bucket, key, function(err, stream) {
-		 if (err) {
-		 	return callback(err);
-        	}
+Storage.prototype.getStreamByKey = function (key, bucket, callback) {
+    const storage = this;
+    let streaming = false;
 
-        	stream.on('error', function(err) {
-			if (streaming) {
-				stream2.emit('error', err);
-		    	} else {
-		        	callback(err);
-		    	}
-		});
-		
-		 stream.on('end', function() {
-            		stream2.end();
-        	});
-		stream.pipe(stream2);
+    let stream2 = through2({ highWaterMark: 1 * 1024 * 1024 },
+        function (chunk, enc, next) {
+            if (!streaming) {
+                streaming = true;
+                callback(null, stream2);
+            }
+            this.push(chunk);
+            next();
+        });
+
+    storage.s3Client.getObject(bucket, key, function (err, stream) {
+        if (err) {
+            if (streaming) {
+                stream2.emit('error', err);
+            } else {
+                callback(err);
+            }
+            return;
+        }
+
+        stream.on('error', function (err) {
+            if (streaming) {
+                stream2.emit('error', err);
+            } else {
+                callback(err);
+            }
+        });
+
+        stream.on('end', function () {
+            stream2.end();
+        });
+
+        stream.pipe(stream2);
     });
 };
 

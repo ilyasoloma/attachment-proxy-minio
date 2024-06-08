@@ -138,7 +138,7 @@ router.get('/:payload/:signature/:filename', async function (ctx) {
 		
 		let stream = null;
 		try {
-			stream = await zip.getStream(filename, config.s3.params.Bucket);
+			stream = await zip.getStream(filename);
 		} catch (err) {
 			// To keep all http response code logic in server.js
 			if (err.code === 'EntryNotFound') {
@@ -158,9 +158,7 @@ router.get('/:payload/:signature/:filename', async function (ctx) {
 		}
 		
 		// Todo: Guess mime type if it's not set in payload?
-		//ZDES PROBLEMA
 		let stream = await storage.getStream(payload.hash, config.s3.params.Bucket);
-		
 		if (payload.contentType) {
 			let type = payload.contentType;
 			if (payload.charset) {
