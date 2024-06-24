@@ -57,7 +57,7 @@ Storage.prototype.getStream = function (hash, bucket, callback) {
 		storage.getStreamByKey(hash, bucket, function (err, stream) {
 			if (err) {
 				if (err.code === 'NoSuchKey') {
-					storage.getLegacyKey(hash, function (err, key) {
+					storage.getLegacyKey(hash, bucket, function (err, key) {
 						if (err) return callback(err);
 						storage.getStreamByKey(key, bucket, function (err, stream) {
 							if (err) return callback(err);
@@ -131,10 +131,17 @@ Storage.prototype.getStreamByKey = function (key, bucket, callback) {
  * @param hash
  * @param callback
  */
-Storage.prototype.getLegacyKey = function (hash, callback) {
-	const storage = this;
+Storage.prototype.getLegacyKey = function (hash, bucket, callback) {
+	callback(new Error('No S3 key found'));
+	/**
+	 * ToDo: rewrite listObjects 
+	 * from aws for minio client
+	 */
+	 
+	 
+	/*const storage = this;
 	const params = {
-		Bucket: this.bucket,
+		Bucket: bucket,
 		MaxKeys: 1,
 		Prefix: hash,
 	};
@@ -144,7 +151,7 @@ Storage.prototype.getLegacyKey = function (hash, callback) {
 			return callback(null, data.Contents[0].Key)
 		}
 		callback(new Error('No S3 key found'));
-	});
+	});*/
 };
 
 Storage.prototype.getTmpPath = function () {

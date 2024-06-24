@@ -29,6 +29,6 @@ Configure HMAC `secret` key and S3 `Bucket` (and `accessKeyId` and `secretAccess
 ## Run Docker image
 
 ```
-sudo docker build -t attachment-proxy .
-sudo docker run -d -p 8084:8084 --restart always attachment-proxy
+sudo docker build -t attachment-proxy-minio .
+sudo docker run -d -p 8084:8084 --restart always attachment-proxy-minio
 ```

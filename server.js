@@ -47,14 +47,16 @@ const storage = new Storage({
 
 
 // Configure CORS for the web library PDF reader
-app.use(cors({
+/*app.use(cors({
 	origin: (ctx) => {
 		let origin = ctx.get('origin');
 		if (origin && origin.endsWith('.zotero.org') || origin.endsWith('.zotero.net')) {
 			return ctx.get('origin');
 		}
 	}
-}));
+}));*/
+
+app.use(cors());
 
 const zips = {};
 
